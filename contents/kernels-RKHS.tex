@@ -1,0 +1,28 @@
+\section{Kernels \& RKHS}
+\textbf{Def. kernel}: Let $\mathcal{X} \subseteq \mathbb{R}^d$. We call $k \colon \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ a kernel if $\forall m \; \forall x_1,...,x_m \in \mathcal{X} \colon K \in \mathbb{R}^{m\times m}$ with $K_{ij} \coloneqq k(x_i, x_j)$ is p.s.d, i.e., $\forall c \in \mathbb{R}^m \colon c^\intercal Kc \geq 0$, and $\forall x,y \colon k(x,y) = k(y,x)$. Examples: \emph{Gaussian kernel}: $k(x,y) \coloneqq \exp{\left(-||x-y||^2_2 / 2\sigma^2\right)}$, \emph{(inh.) polynomial kernel}: $k(x,y) \coloneqq \left( \langle x,y \rangle + c \right)^d, \; c > 0$. \\
+\textbf{Def. RKHS}: Let $\mathcal{H}$ be a Hilbert space of functions $f \colon \mathcal{X} \to \mathbb{R}$, meaning\\
+(i) $\mathcolor{gray}{\forall \lambda \in \mathbb{R} \; \forall f \in \mathcal{H} \colon \forall x \in \mathcal{X} \; (\lambda f)(x) \coloneqq \lambda f(x)}$, and  \\
+(ii) $\mathcolor{gray}{\forall f, g \in \mathcal{H} \colon \forall x \in \mathcal{X} \; (f+g)(x) \coloneqq f(x) + g(x)}$ \\
+Then, $\mathcal{H}$ is called a RKHS if there is a kernel $k\colon \mathcal{X} \times \mathcal{X} \to \mathbb{R}$ s.t. \\
+$\forall x \in \mathcal{X} \colon k(x, \cdot) \in \mathcal{H}$ and $\forall f \in \mathcal{H} \; \forall x \in \mathcal{X} \colon \langle f(\cdot), k(x, \cdot) \rangle = f(x)$\\
+\textbf{Rem.}: RKHS has inner product, and $\langle\cdot,\cdot\rangle \leadsto ||\cdot|| \leadsto d(\cdot) \leadsto \mathcal{T}$ \\
+\textbf{Prop.}: For all kernels, there is an RKHS with this kernel. \\
+\textbf{Def. feature map}: We call $\Phi \colon \mathcal{X} \to \mathcal{H}, \; x \mapsto k(x, \cdot)$ the feature map.\\
+\textbf{Remark}: Clearly, $\langle \Phi(x), \Phi(\Tilde{x}) \rangle = k(x, \Tilde{x})$ (\textrightarrow in this RKHS, evaluating the dot product is simple: you just evaluate the kernel). Thus, whenever a method uses data in form of dot products, we can 'kernelize' the method: \\
+\textbf{1)} Map data into $\mathcal{H}$ using $\Phi$ \\
+\textbf{2)} Apply the method/algorithm using the above remark
+
+\subsection*{Median heuristic for Gaussian kernel}
+Given $x_1,...,x_n \colon \text{median}(||x_i-x_j||^2_2)_{i \neq j} = 2\sigma^2$
+
+\subsection*{Support vector machines (SVM)}
+Given data $(x_1,Y_1),...,(x_n, Y_n)$, $\mathcal{X} \in \mathbb{R}^d, \mathcal{Y} \in \{-1, 1\}$we are looking for a decision boundary $\{ z \in \mathbb{R}^d \colon \langle w, x_i\rangle + b = 0\}$. Here, $w$ and $b$ are not unique! We can require $\text{min}_{i\in\{1,...,n\}}|\langle w, x_i \rangle + b|=1$ to get unique $w, b$ that describe the hyperplane (in case of linearly seperable data). We have $\text{margin} = 1 / ||w||^2_2$.\\
+$\mathcal{O}_1$: (Hard-SVM): $\text{min}_{w,b} \frac{1}{2}||w||^2_2$ s.t. $\forall i \in \{1,...,n\} \colon Y_i(\langle x_i, w \rangle + b) \geq 1$ \\
+(Soft): $\text{min}_{w,b} \frac{1}{2}||w||^2_2 + C \cdot \sum_{i=1}^n \xi_i$ s.t. $\forall i \in \{1,...,n\} \colon Y_i(\langle x_i, w \rangle + b) \geq 1-\xi_i$.\\
+$\mathcal{O}_1$ is equiv. to $\text{max}_{\alpha \in \mathbb{R}^n} \sum_{i=1}^n \alpha_i - \frac{1}{2}\sum_{i,j = 1}^n \alpha_i \alpha_j Y_i Y_j \langle x_i, x_j \rangle$ s.t. $\sum_{i=1}^n \alpha_iY_i = 0$ and $\forall i \in \{1,...,n\} \colon C \geq \alpha_i \geq 0$, which is kernelizable!
+\subsection*{Representer theorem}
+Let $C \colon \mathbb{R}^n \times \mathcal{X}^n \times \mathbb{R}^n \to \mathbb{R}$ be a loss function and $x_1,...,x_n \in \mathcal{X}$, $Y \in \mathbb{R}^n, \lambda \geq 0$. Let $\mathcal{H}$ be an RKHS with repr. kernel $k$ and let $\mathbf{K}$ be the gram matrix, i.e., $\mathbf{K}_{i,j} \coloneqq k(x_i, x_j)$. Then, \\
+$\hat{f} \in \text{argmin}_{f\in \mathcal{H}} C(Y,x_1,...x_n,f(x_1),...,f(x_n)) + \lambda \cdot ||f||_\mathcal{H}$ if and only if \\
+$\exists {\hat{\alpha}_1,...,\hat{\alpha}_n} \colon \hat{f}(\cdot) = \sum_{i=1}^n \hat{\alpha}_i k(x_i, \cdot)$ and \\
+$\hat{\alpha} \in \text{argmin}_{\alpha \in \mathbb{R}^n} C(Y, x_1,...,x_n, \mathbf{K}\alpha) + \lambda\alpha^\intercal\mathbf{K}\alpha$ \\
+\textbf{Rem.}: In particular, $\forall \Tilde{x} \in \mathcal{X} \colon \hat{f}(\Tilde{x}) = \Tilde{\mathbf{K}}\alpha$, where $\mathbf{\Tilde{K}}_{1,i} \coloneqq k(x_i, \Tilde{x})$

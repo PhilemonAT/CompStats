@@ -1,0 +1,21 @@
+\section{Nonparametric Density Estimation}
+$x_1,...,x_n \overset{i.i.d}{\sim} F$ diff. and $f \coloneqq F'$ \textrightarrow Estimate $f$ by $\hat{f}$\\
+Surrogate Criterion: $MISE=\mathbb{E}[\int{(f(x)-\hat{f}(x))^2}dx]=\int{MSE(x)}dx=\int{(\mathbb{E}[\hat{f}(x)]-f(x))^2+Var(\hat{f}(x))}dx=IMSE$\\
+\textbf{Est. 1: Histogram}: Choose: $x_0 \in \mathbb{R}, h>0$. \\ 
+Then, $\forall x\in \mathbb{R}: \hat{f}_{x_0, h}(x) \coloneqq \sum_{j\in \mathbb{Z}}\hat{g}_j\mathds{1}_{[x\in I_j]}$, where $\forall j \in \mathbb{Z}: I_j \coloneqq (x_0+jh, x_0+(j+1)h]$ and $\hat{g}_j \coloneqq \frac{\#\{i\in \{1,...,n\}: x_i\in I_j\}}{nh}$. Note: $\hat{f}$ is not continuous. \\
+\textbf{Est. 2: KDE}: Fix a kernel $k: \mathbb{R} \to \mathbb{R}_{\geq 0}$ s.t. $\int_{-\infty}^{+\infty}{k(x)}dx=1$, k is bounded and $\forall x\in \mathbb{R}: k(x)=k(-x)$ and $h>0$. Define $\hat{f}_{h}(x) \coloneqq \frac{1}{nh}\sum_{1=1}^{n}k\left(\frac{x-x_i}{h}\right)$ \\
+\textbf{Bias-Variance Trade-off}: the (absolute value of the) bias of $\hat{f}$ increases and the variance of $\hat{f}$ decreases as $h$ increases.\\
+$\mathbb{E}[\hat{f}(x)] = \int{\frac{1}{h}K\left(\frac{x-y}{h}\right)f(y)dy}$,  \\ 
+$Var(\hat{f}(x))=n^{-1}\int{\frac{1}{h^2}K\left(\frac{x-y}{h}\right)^2 f(y)dy} - n^{-1}\left(\int{\frac{1}{h}K\left(\frac{x-y}{h}\right)f(y)dy}\right)^2$ \\
+\textbf{Asymptotics}: Assume $h=h_n \to 0$ with $nh_n \to \infty$. Then (with $z=(y-x)/h$), \\
+$Bias(x)=h^2f''(x)\int{z^2K(z)dz/2}+o(h^2)$ as ($n\to\infty$); \\
+$Var(\hat{f}(x))=(nh)^{-1}f(x)\int{K(z)^2dz} + o((nh)^{-1})$ as  ($n\to\infty$) \\
+\textrightarrow bias and variance go to 0 asympt. as $h=h_n \to 0$ and $nh_n \to \infty$! \\
+Optimal \textbf{local} bandwidth minimizes leading term in asymptotic $MSE(x)$:\\
+$h_{opt}(x)=n^{-1/5}\left(\frac{f(x)\int{K^2(z)dz}}{(f''(x))^2(\int{z^2K(z)dz})^2}\right)^{1/5}$\\
+Optimal \textbf{global} bandwidth minimizes the asymptotic $MISE$:\\
+$h_{opt} = n^{-1/5}\left(R(K)/\sigma_{K}^{4}*\frac{1}{R(f'')}\right)^{1/5}$, where $\mathcolor{gray}{R(g)=\int{g^2(x)dx}}$, and\\ $\mathcolor{gray}{\sigma_{K}^{2}=\int{x^2K(x)dx}}$. The \textbf{optimal rate} for the $MISE$ and $MSE(x)$ is thus of order $O(n^{-4/5})$.\\
+\textrightarrow asympt. best bandwidth depends on $R(f'')$, which is unknown. Can estimate $f''$ again by a kernel estimator with an ``initial``  bandwidth $h_{init}$, yielding $\hat{f}''_{init}$ (Sheather-Jones in R: density(*, bw='SJ') )\\
+\textbf{Curse of Dimensionality}: In the multivariate case, we use $K: \mathbb{R}^d \to \mathbb{R}_{\geq0}$ and have an asympt. optimal MSE of order $O\left(n^{-4/(4+d)} \right)$. Thus, KDE is often restricted to $d=2$. To improve MSE by factor 0.1 for d=10, need to incr. sample size by factor 3160: $O(n^{-4/14}) = 0.1 \iff n = 0.1^{-14/4}$
+
+

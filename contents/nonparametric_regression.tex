@@ -1,0 +1,27 @@
+\section{Nonparametric Regression}
+\textbf{Fixed design}. $Y_i = m(x_i) + \epsilon_i$, where $m(x_i)$ is nonrandom, $\epsilon_1,...,\epsilon_n$ i.i.d., with $\mathbb{E}[\epsilon_1]=0$, $Var(\epsilon_1)=\sigma_{\epsilon}^2$\\
+\textbf{Random design}. $Y_i = m(X_i) + \epsilon_i$, where $\epsilon_1,...,\epsilon_n$ i.i.d. with $\mathbb{E}[\epsilon_i]=0$ and $m:\mathbb{R}\to \mathbb{R}$ is an ``arbitrary`` function (\emph{nonparametric regression function}), satisfying $m(x) = \mathbb{E}[Y|X=x]$.
+
+\subsection*{Kernel regression estimator (ksmooth)}
+In the \textbf{random design}, we have \\ $\mathbb{E}[Y|X=x]=\int{yf_{Y|X=x}(y)dy} = \frac{\int{yf_{X,Y}(x,y)dy}}{f_X(x)}$. Plugging in the KDEs, we get $\hat{m}_{kde}(x)= \frac{\sum_{i=1}^n{K\left((x-x_i)/h\right)}Y_i} {{\sum_{j=1}^n K\left((x-x_j)/h\right)}}$ (NW-kernel estimator)\\ 
+In the \textbf{fixed design}, we solve $argmin_{m_x}\sum_{i=1}^nK\left(\frac{x-x_i}{h}\right)\left(Y_i-m_x\right)^2$, which is equal to $\hat{m}_{kde}(x)$ above! \textrightarrow For every fixed x, search for best local constant $m_x$ s.t. localized sum of squares is minimized.\\
+\textbf{Note}: $h \to \infty$: straight line (high bias, small var.); $h \to 0$: interpolation.\\
+\textbf{Hat matrix}: Kernel estimator evaluated at design points $\hat{m}(x_1),...,\hat{m}(x_n)$ is a linear operator:\\ $S: \mathbb{R}^n \to \mathbb{R}^n, (Y_1,...,Y_n)^\intercal \to (\hat{m}(x_1),...,\hat{m}(x_n))^\intercal \eqqcolon \hat{m}(x.)=\hat{\mathbf{Y}}$, i.e., \\ 
+$\hat{\mathbf{Y}}=S\mathbf{Y}$, where $S$ is the hat matrix representing the linear operator with $[S]_{r,s}=w_s(x_r), r,s \in \{1,...,n\}$, since $S\{(Y_1,...Y_n)^\intercal \}=(\hat{m}(x_1),...,\hat{m}(x_n))^\intercal $, and $w_i(x)=\frac{K((x-x_i)/h)}{\sum_{j=1}^nK((x-x_j)/h)}$\\
+\textbf{Covariance}: $Cov(\hat{\mathbf{m}}(x.)) = \sigma_\epsilon^2 S S^\intercal $, i.e., $Cov(\hat{m}(x_i), \hat{m}(x_j)) = \sigma_\epsilon^2 (S S^\intercal )_{ij}$, and $Var(\hat{m}(x_i))=\sigma_\epsilon^2 (S S^\intercal )_{ii}$. We estimate the unknown $\sigma_\epsilon^2$ by \\ $\hat{\sigma}_\epsilon^2 \coloneqq \frac{\sum_{i=1}^n(\hat{m}(x_i)-Y_i)^2}{n-df}$, where $df \coloneqq tr(S)$ \\
+\textbf{Confidence Interval}: We have $\widehat{s.e}(\hat{m}(x_i))=\sqrt{\widehat{Var}(\hat{m}(x_i))}=\hat\sigma_\epsilon\sqrt{(SS^\intercal )_{ii}}$. Because $\hat{m}(x_i) \approx \mathcal{N}(\mathbb{E}[\hat{m}(x_i)], Var(\hat{m}(x_i)))$, it follows that \\ 
+$I = \hat{m}(x_i) \pm 1.96*\widehat{s.e.}(\hat{m}(x_i))$ yields approx. pointw. conf. intervals for $\mathbb{E}[\hat{m}(x_i)]$ (\textbf{for the expected value}, not true underlying function $m(x_i)$!). Correction of this interval: $I - \widehat{bias}$, where $\widehat{bias}$ is an esimate of the bias. \emph{Note}: We only have confidence and not prediction intervals!
+
+\subsection*{Local polynomial nonparametric regression esimator (LOESS)}
+Extends the locally constant kernel regression estimator (ksmooth) to a locally polynomial regression estimator:\\ 
+$\hat{\beta}(x) = \underset{\beta \in \mathbb{R}^p}{argmin}\sum_{i=1}^n K\left(\frac{x-x_i}{h}\right)\left(Y_i - \beta_1 - \beta_2(x_i-x) - ... - \beta_p(x_i-x)^{p-1} \right)^2$ We usually use $p=2$ or $p=4$. The function estimator is given by evaluating $\sum_{j=1}^p \hat{\beta}_j(x)(u-x)^{j-1}$ at $u=x$. Due to the centering, only the intercept remains: $\hat{m}(x) = \hat{\beta}_1(x)$ \\
+\textrightarrow often better at edges \& yields derivatives $\hat{m}^{(r)}(x) = r!\hat{\beta}_{r+1}(x)$, for $r=0,1,...,p-1$
+
+\subsection*{Smoothing splines and penalized regression}
+Minimize $\sum_{i=1}^n(Y_i-m(x_i))^2 + \lambda \int m''(z)^2dz$ over twice diff. functions. $(*)$\\
+\textrightarrow $\lambda = 0$: perfect interpolation (not unique)
+\textrightarrow $\lambda \to \infty$: linear regression
+\textrightarrow $0 < \lambda < \infty$: Closed form solution available \\
+\textbf{Def. Natural cubic spline}: Let $a \leq x_1 \leq ... \leq x_n \leq b.$ We call $g: [a, b] \to \mathbb{R}$ a \emph{cubic spline} if \emph{a)} on all intervals $[a, x_1), ...,[x_n, b)$ $g$ is a cubic polynomial, and \emph{b)} $g$ has two continuous derivatives on $[a,b]$. Furthermore, $g$ is \emph{natural} if $g''(a) = g''(b)=g'''(a)=g'''(b)=0$ \\
+\textbf{Thm.}: The unique minimizer of $(*)$ is the unique natural cubic spline with $g = (\mathds{1}+\lambda K)^{-1}Y$, where $K=QR^{-1}Q$, and Q, R are banded matrices (easy to compute) \\
+\textbf{Note}: $n$ free params. (but $df = tr(S_{\lambda})$). Choose $\lambda$ via CV. 

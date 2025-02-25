@@ -1,0 +1,41 @@
+\section{Bagging and Boosting}
+\subsection*{Bagging (Variance reducing technique)}
+Consider a base model, e.g., CART, which yields a function estimate $\hat{g}(\cdot) \colon \mathbb{R}^p \to \mathcal{T}$ (or $\hat{g}(\cdot) \in [0,1]$ for class. The bagging algorithm is as follows:
+\begin{enumerate}
+    \item Generate a bootstrap sample $(X^*_1, Y^*_1),...,(X^*_n,Y^*_n)$ and compute the bootstrapped estimator $\hat{g}^*(\cdot)$
+    \item  Repeat step 1 $B$ times, yielding $\hat{g}^{*1}(\cdot), ..., \hat{g}^{*B}(\cdot)$
+    \item Aggregate the bootstrap estimates to get $\hat{g}_{\text{Bag}}(\cdot) = B^{-1} \sum_{i=1}^B \hat{g}^{*i}(\cdot)$
+\end{enumerate}
+The bagging algorithm is an approximation: $\hat{g}_{\text{Bag}}(\cdot) \approx \mathbb{E}^*[\hat{g}^*(\cdot)]$, which can be made arbitrarily good by increasing $B$. \\ 
+\textbf{Note}: With $B = \infty$, we have $\hat{g}_{\text{Bag}}(\cdot) = \hat{g}(\cdot) + (\mathbb{E}^*[\hat{g}^*(\cdot)] - \hat{g}(\cdot)) \\
+= \hat{g}(\cdot) \; +$ \textit{bootstrap bias estimate}. Thus, we add the bootstrap bias estimate, and hope for a reduction in variance. \\
+Let $\mathcal{D} = \{ (x_i, y_i) \colon i \in 1,...,n \}$, $\; (X_i, Y_i) \sim \mathcal{T}$, $\; Y = f_0(x) + \epsilon \;$, with \\
+$f \colon \mathbb{R}^p \to \mathbb{R}, \; f_0(x) = \mathbb{E}[Y|X], \; \mathbb{E}[\epsilon|X]=0$. We compare the normal model estimator $\hat{f}^*$ based on $\mathcal{D}$ with the ideal aggregated bootstrap estimator $\hat{f}_{\text{Bag}} = \mathbb{E}_\mathcal{T}[\hat{f}^*]$. For a new $(X, Y) \sim \mathcal{T}$, we have, $\mathbb{E}[(Y-\hat{f}^*(X))^2] = \mathbb{E}[(Y-\hat{f}_{\text{Bag}}(X))^2] + \text{Var}(\hat{f}^*(X)) \implies \mathbb{E}[(Y-\hat{f}^*(X))^2] \geq \mathbb{E}[(Y-\hat{f}_\text{Bag})^2]$, meaning that the ideal bagging estimator has lower MSE than the normal model without bagging. The additional error corresponds to the variance of the original estimation. Thus, it's useful for \textbf{large models} with \textbf{low bias} but \textbf{high variance}. \\
+In \textbf{Subagging} we draw $(X_1^*,Y_1^*),...,(X_m^*,Y_m^*)$ without replacement in step 1 of the algorithm (for some $m < n$). In simple cases, $m = [n/2]$ makes subagging equiv. to bagging.\\
+
+\subsection*{Boosting}
+\textbf{Adaboost}: $g \colon \mathbb{R}^p \to \{-1, 1\}, \; Y = \{-1, 1\}$. The algorithm is: \\
+\begin{enumerate}
+    \item Init. observation weights $w_i = 1/N, \; i=1,...,N$. For $m=1,...,M$, do: \\
+        \textbf{a)} Fit classifier $\hat{g}_m$ using $w_i$ \\
+        \textbf{b)} Compute weighted error $\text{err}_m = \sum_{i=1}^N w_i \mathds{1}_{[Y_i \neq \hat{g}_m(x_i)]} / \sum_{i=1}^N w_i$ \\
+        \textbf{c)} Compute model weight $\alpha_m = \text{log}\left( (1- \text{err}_m) / \text{err}_m \right)$ \\
+        \textbf{d)} Update weights $w_i = w_i \text{exp}\left(\alpha_m \mathds{1}_{[Y_i \neq \hat{g}_m(x_i)]}\right)$
+    \item Final model: $\hat{G}(x) = \text{sign}\left(\sum_{m=1}^M \alpha_m \hat{g}_m(x)\right)$ (weighted maj. decision) 
+\end{enumerate}
+
+\textbf{Gradient / L2-Boosting}: The idea is to use functions to approximate the (negative) gradient of the loss w.r.t current prediction and then push this prediction step-wise into the direction of the true value. The algorithm is:
+\begin{enumerate}
+    \item Initialize $G(x) = g_0(x)$ (e.g., mean or majority vote)
+    \item For $m=1,...,M$, do:\\
+        \textbf{a)} For $i = 1,...,N$ compute $r_{im} = -\frac{\partial L(Y_i, G(x_i))}{\partial G(x_i)}$ \\
+        \textbf{b)} Fit $g_m(x_i)$ to $r_{im}$ (fit a fct. that predicts negative gradient) \\
+        \textbf{c)} Set $G(x) = G(x) + \gamma g_m(x)$, for some step-size $\gamma$ \\
+\end{enumerate}
+Note: In many cases, $r_{im}$ corresponds to the residuals (or some pseudo-residuals). For regression with the squared loss, $r_{im}=2(Y_i - \hat{Y_i})$, and for classification when using the negative likelihood and modelling the log-odds, $r_{im} = Y_i - \hat{p}_i$. \\
+
+\textbf{XGBoost}: We consider $\hat{Y}_i = \phi (x_i) = \sum_{k=1}^k f_k(x_i), \; f_k \in \mathcal{F}$, where $\mathcal{F} = \{ f(x) = w_{q(x)} \}$ is the space of regression trees, so $q \colon \mathbb{R}^p \to T$, $w \in \mathbb{R}^T$, where $T$ is the number of leafs, and $w$ the leaf predictions. We can also write $f(x_i) = \sum_{j=1}^T \mathds{1}_{[j = q(x_i)]}w_j$. We train the functions \textit{forward additive}: \\
+$L^{(t)}=\sum_{i=1}^n L\left(Y_i, \hat{Y}_i^{(t-1)} + f_t(x_i)\right) + \Omega(f_t)$, where $\Omega(f_t) \coloneqq \gamma T + \frac{1}{2}\lambda ||w||^2$, so we penalize the number of leafs per tree and add a ridge penalty for the leaf outputs (predictions). This can be simplified to \\
+$\Tilde{L}^t = \sum_{j=1}^T \left[ \sum_{i\in I_j} g_i w_j + \frac{1}{2} (\sum_{i \in I_j}h_i + \lambda) w_j^2 \right] + \gamma T$, where\\
+$g_i = \frac{\partial L(Y_i, \hat{Y}_i^{(t-1)})}{\partial \hat{Y}_i^{(t-1)}}$, $h_i$ the second derivative and $I_j \coloneqq \{ i \colon q(x_i) = j \}$. Then, for a given structure $q(x)$ for the $t-th$ tree, we get the optimal prediction for that tree by $w_j^* = -\frac{\sum_{i \in I_j}g_i}{\sum_{i \in I_j} h_i + \lambda}$. \emph{Note:} usually it is not possible to enumerate all possible tree structures, and in practice we use greedy algorithms (not covered in class). Final prediction is then, $\phi(x_i) = \sum_{k=1}^{K} \alpha * f_k(x_i)$, for learning rate $\alpha$.
+

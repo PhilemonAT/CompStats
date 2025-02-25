@@ -1,0 +1,32 @@
+\section{Cross-Validation}
+\textrightarrow Used for estimating generalization (out-of-sample) performance \\
+When having an estimated target $\hat{m}$ and a loss function $\rho$, we would like to evaluate $\frac{1}{\ell} \sum_{i=1}^\ell \rho(Y_{new,i}, \hat{m}(X_{new, i}))$, where $\hat{m}(.)$ is constructed from training data only, and $(X_{new,1}, Y_{new, 1}), ..., (X_{new,\ell}, Y_{new, \ell}) \overset{iid}{\sim} P$ is new test data, independent from training data but with same distribution $P$. \\ 
+If $\ell$ is large, this evaluation on the test set approximates the \textbf{theoretical test set error}: $\mathbb{E}_{x_{new}, Y_{new}}[\rho \left(Y_{new}, \hat{m}(X_{new}) \right)]$, which is still a fct. of training data, due to $\hat{m}$. \\
+The expected value of this (w.r.t. training data) is the \textbf{generalization error}: $\mathbb{E}_{training}\mathbb{E}_{x_{new}, Y_{new}}[\rho \left(Y_{new}, \hat{m}(X_{new}) \right)] = \mathbb{E}[\rho \left(Y_{new}, \hat{m}(X_{new}) \right)]$.\\
+
+\vspace{-0.8\baselineskip}
+\subsection*{CV Schemes}
+
+\textbf{LOOCV}. The cross-validated performance (of estimator $\hat{m}$, where $\hat{m}^{(-i)}$ is trained without the $i$-th data point) is: $\frac{1}{n}\sum_{i=1}^n\rho\left(Y_i, \hat{m}_{n-1}^{(-i)}(X_i)\right)$, which is an estimate of the test set error, or generalization error. \\
+\textrightarrow requires fitting the estimator $n$ times \\
+
+\vspace{-0.5\baselineskip}
+\textbf{K-fold CV}. Construct an estimator $\hat{m}^{(-\mathcal{B}_k)}_{n-|\mathcal{B}_k|}$, where for $k=1,...,K$, $\mathcal{B}_k$ are $K$ equally sized subsets \emph{without} intersection. The cross-validated performance of $\hat{m}$ is then again: $\frac{1}{K}\sum_{k=1}^K\frac{1}{|\mathcal{B}_k|} \sum_{i\in \mathcal{B}_k} \rho \left( Y_i,  \hat{m}^{(-\mathcal{B}_k)}_{n-|\mathcal{B}_k|}(X_i)\right)$. \\
+\textrightarrow requires fitting the estimator $K$ times, and $K \ll n$ \\
+
+\vspace{-0.5\baselineskip}
+\textbf{Leave-d-out CV}. \emph{Idea: if data is i.i.d., the indexing of the data should not matter!} Leave a set $\mathcal{C}$ comprising $d$ obs. out and use the remaining $n-d$ data points for training. The cross-validated performance of $\hat{m}$ is then: $\binom{n}{d}^{-1} \sum_{k=1}^{\binom{n}{d}}d^{-1} \sum_{i \in \mathcal{C}_k} \rho \left(Y_i, \hat{m}_{n-d}^{(-\mathcal{C}_k)}(X_i)  \right)$. \textrightarrow comp. infeasible if $d \geq 3$. \\ 
+Computational shortcut is \textbf{randomization}: Draw $B$ random test subsets $\mathcal{C}^*_1,...,\mathcal{C}^*_B \overset{i.i.d}{\sim} Unif(\{1,...,\binom{n}{d}\})$ ($\mathcal{C}^*$ is obtained by sampling $d$ times without replacement from $\{1,...,n\}$). The random approx. then gives the CV performance $\frac{1}{B}\sum_{k=1}^B d^{-1}\sum_{i \in \mathcal{C}^*_k} \rho \left( Y_i, \hat{m}^{(-\mathcal{C}_k^*)}_{n-d}(X_i) \right)$. Often choose $d=[\gamma n], \gamma \approx 0.1$, and $B \approx 50-500$. Stochastic version may be even faster than LOOCV if $B < n$. Stochastic version equivalent to leave-d-out CV for $B = \infty$\\
+\vspace{-0.9\baselineskip}
+\subsection*{Properties of CV-schemes}
+\begin{itemize}
+    \item One random split into test- and training-data: \textcolor{darkgreen}{fastest}; \textcolor{darkred}{poor both in bias and variance}
+    \item LOOCV: \textcolor{darkgreen}{approx. unbiased for true gen. error}; \textcolor{darkred}{Variance high, because the n training sets are so similar to each other}
+    \item Leave-d-out CV: \textcolor{darkgreen}{Lower variance than LOOCV}; \textcolor{darkred}{Higher bias than LOOCV with $d>1$}
+    \item K-fold CV \& stochastic approx.: \textcolor{darkred}{K-fold CV has larger bias than LOOCV.} Effects on variance is not clear! \textcolor{darkred}{Stochastic approx. expected to have higher variance than comp. infeasible leave-d-out CV}. 
+\end{itemize}
+
+\subsection*{Comp. shortcut for some linear fitting operators}
+Consider a linear fitting operator $S$, $(\hat{m}(x_1),...,\hat{m}(x_n))^\intercal=SY$, and the squared loss $\rho(y,x)=|y-x|^2$. \\
+Then: $\frac{1}{n}\sum_{i=1}^n \left(Y_i-\hat{m}^{(-i)}_{n-1}(X_i) \right)^2 = \frac{1}{n} \sum_{i=1}^n\left( \frac{Y_i-\hat{m}(X_i)}{1-S_{ii}} \right)^2$ \\
+\textrightarrow Can compute CV score by fitting original estimator $\hat{m}(.)$ \textbf{once on full dataset}, without having to do it n times. $S$ can be computed in $\mathcal{O}(n)$ time.

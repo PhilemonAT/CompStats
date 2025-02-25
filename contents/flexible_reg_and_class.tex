@@ -1,0 +1,70 @@
+\section{Flexible regr. \& class. methods}
+$g(\cdot): \mathbb{R}^p \to \mathbb{R}$ denotes either a regr. fct. $\mathbb{E}[Y|X=x]$ or the logit transform in a binary class. problem $log\left( \pi(x)/(1-\pi(x)) \right)$.
+
+\subsection*{Additive models}
+Assume $\exists g_1,...,g_d \forall x \in \mathbb{R}^d: g(x)=\sum_{j=1}^d g_j(x^j)$, where $x^j$ is the j-th component of x, the functions $g_j(\cdot): \mathbb{R} \to \mathbb{R}$ are fully nonparametric and $\forall j: \mathbb{E}[g_j(x^j)]=0 $. The last requirement yields an identifiable model (o.w. we could add and subtract constants). The curse of dimensionality is \textbf{not} present in additive models (when all $g_j$ have second continuous derivative, some $\hat{g}_{add}(.)$ have MSE rate $\mathcal{O}(n^{-4/5})$)\\
+\textbf{Backfitting}: Input is smoother $S_j :\mathbb{R}^n \to \mathbb{R}^n$, $\mathbf{Y} \to \mathbf{\hat{Y}}$, where $S_j$ uses $\mathbf{x^j}$.\\
+\textbf{1)} Use $\hat{\mu} = n^{-1}\sum_{i=1}^nY_i$. Start with $g_j(\cdot) \equiv 0$ for all $j=1,...,d$ \\
+\textbf{2)} Let $j$ cycle through $1,...,d,1,...,d,...$ \& compute
+$\mathbf{\hat{g}_j} = S_j(\mathbf{Y} - \hat{\mu}\mathbf{1} - \sum_{k\neq j} \mathbf{\hat{g}_k})$, where $\mathbf{Y}=(Y_1,...,Y_n)^\intercal$, and $\mathbf{\hat{g}_j}=\left(\hat{g}_j(x_1^j),...,\hat{g}_j(x_n^j)\right)^\intercal$. Stop if individual fcts. $\hat{g}_j(\cdot)$ do not change much anymore. \\
+\textbf{3)} Normalize the functions $\Tilde{g}_j(\cdot) = \hat{g}_j(\cdot) - n^{-1} \sum_{i=1}^n\hat{g}_j(x_i^j)$ \\
+
+\subsection*{Neural Networks}
+One-layer-feed-forward neural network: $g_k: \mathbb{R}^p \to \mathbb{R}$, with \\
+$g_k(x) \coloneqq f(\alpha_k + \sum_{h=1}^q w_{hk} \phi(\Tilde{\alpha}_h + \sum_{j=1}^p \Tilde{w}_{jh} x^j))$. For regr. use k=1, for class. use k=J. Note that $f$ and $\phi$ are known activation functions. Common activation functions: \emph{sigmoid/logistic, ReLU, GeLU, tanh, softmax...}.  \\
+\textbf{Softmax}: With $\mathbf{g} \coloneqq (g_1(x), ..., g_k(x))^\intercal$, the softmax is defined as \\
+$\text{softmax}(\mathbf{g})_k \coloneqq \frac{exp(g_k)}{\sum_{j=1}^k exp(g_j)}$. Numerically: potentially over-/underflow! \\
+\textbf{Loss fct.}: 
+\begin{itemize}
+    \item For \emph{regression}, use squared loss.
+    \item For \emph{classification}: Use softmax with k=J (\#classes) and then negative log-likelihood loss (which is equal to minimizing the cross-entropy loss if using softmax!). The negative gradient of this \emph{nll loss} (=cross-entropy loss) then equals $-\frac{\partial}{\partial g_j} = -\text{softmax}(\mathbf{g})_j + \mathbf{1}_{Y_i=j}$
+\end{itemize}
+\textbf{Regularization}: Can add '\emph{weight decay}', i.e., a term $+\lambda||\beta||_2^2$ to loss fct. (where $\beta$ is a vector of all (or a subset) of the coefs. in the model). Also, one can introduce '\emph{skip layers}' to introduce linear dependencies. \\
+\textbf{Optimization}: (i) Gradients can be computed efficiently (backpropagation); (ii) $+\lambda||\beta||^2_2$ yields a gradient step that subtracts a fraction of the weights from them; (iii) Newton-type methods require $\mathcal{O}(\#pars.^3)$ and $\mathcal{O}(\#pars.^2)$ for quasi-Newton \textrightarrow too slow. Instead use SGD with $\mathcal{O}(knp)$ \\
+\textbf{Tips}: (1) center $X$ and scale them (batchnorm); (2) momentum; (3) dropout (only during training); (4) random initialization of weights from $\text{Unif}\left(-\sqrt{\frac{6}{m+n}}, \sqrt{\frac{6}{m+n}}\right)$, where $m$: \#inputs, $n$: \#outputs. \\
+
+\subsection*{Classification and regression trees}
+\textbf{Setting}. $X \in \mathbb{R}^p, y \in \mathbb{R}$. Given partition $\mathcal{T} \coloneqq \{R_1,...R_M\}, \mathbb{R}^p = \dot\bigcup_{j=1}^M R_j$, and $R_1,..,R_M$ are rectangular regions. We consider functions $g_{\text{tree}, \beta} \colon \mathbb{R}^p \to \mathbb{R}, x \mapsto \sum_{r=1}^M \beta_r \mathds{1}_{R_r}(x)$. \\
+\textbf{\underline{Given $\mathcal{T}$}, what is a good value for $\beta$?}
+\begin{itemize}
+    \item \textbf{Regr. \& J=2}: $\forall r \in \{1,...,M\} \colon \hat{\beta}_r \coloneqq \frac{\sum_{i=1}^n Y_i \mathds{1}_{R_r}(x_i)}{\sum_{j=1}^n \mathds{1}_{R_r}(x_j)}$ \textrightarrow minimizes RSS!
+    \item \textbf{Multiclass class. (J>2)}: We use $g_{\text{tree}, \beta} \colon \mathbb{R}^p \to \mathbb{R}^{\mathcolor{darkred}{J}}$, \\
+    with $g_{\text{tree}, \beta}^j (\cdot)$ modeling $\mathbb{P}(Y=j|\cdot)$. Then, $\hat{\beta}_r^j \coloneqq \frac{\sum_{i=1}^n \mathds{1}_{[Y_i=j]} \mathds{1}_{R_r}(x_i)}{\sum_{k=1}^n \mathds{1}_{R_r}(x_k)}$ \textrightarrow minimizes cross-entropy loss: $\sum_{r=1}^M n_r \mathcolor{darkgreen}{\left( -\sum_{j=1}^J p_r^j log\left(\beta_r^j\right) \right)}$, \\
+    where $p_r^j$ is the fraction of times $Y=j$ in rectangle number $r$ and $n_r \coloneqq \sum_{i=1}^n \mathds{1}_{R_r}(x_i)$ is number of datapoints in rectangle number r. \\
+    If $\beta_r^j=p_r^j$, \textcolor{darkgreen}{this part} is the entropy of $p_r$, i.e., $H(p_r)$. We want very small entropy in each of the leaves!
+\end{itemize}
+
+We cannot just minimize these losses directly to find partition $\mathcal{T}$, because this would interpolate the data. Instead, we use the \textbf{following algorithm}:
+\textbf{1)} $M=1, R_1 \coloneqq \mathbb{R}^p, \mathcal{T}=\{R_1\}$;\\
+\textbf{2)} While $M<M_{max} \colon$ (i) refine partition $\mathcal{T}$ by choosing $(r, k, i)$ ($r$: rectangle, $k$: dimension, $i$: mid-point) and then splitting $R_r$ into $R_{left}, R_{right}$ at the midpoint between $x_i^k$ and next largest $x_.^k$. (ii) Set $M \leftarrow M+1$ and $\mathcal{T} \coloneqq \mathcal{T} \setminus \{R_r\} \cup \{R_{left}, R_{right}\}$\\
+\textbf{3)} Prune the tree. 
+
+\begin{itemize}
+    \item \textbf{Details to 2)}. Look for largest reduction in ...
+    \begin{itemize}
+        \item Regr.: RSS.
+        \item Multiclass class.: Cross-entropy (equiv. to largest information gain); Alternatively, look at weighted Gini-impurity
+    \end{itemize}
+
+    \item \textbf{Details to 3)}: Pruning = cut the tree at internal node and replace it by a new leaf node: $R_\alpha(\mathcal{T}) \coloneqq R(\mathcal{T}) + \alpha \cdot \text{size}(\mathcal{T})$, where $R$ is a cost fct. (e.g., RSS or cross-entropy). Changing $\alpha \in [0, \infty)$ yields smaller sub-trees (but not necessarily all of them). Instead of $\alpha$, we use $Cp = \alpha /R(\mathcal{T}_{\emptyset})$ ($\alpha$ divided by cost of empty tree). Use CV to find $Cp$ (1-SE rule) 
+\end{itemize} 
+
+\subsection*{Random forests}
+\begin{enumerate}
+    \item Draw $n_{tree}$ bootstrap samples of data
+    \item For each sample, grow a tree BUT
+    
+    \begin{itemize}
+        \item no pruning, maybe use node size to lower bound the \# of data points in nodes
+        \item at each split, randomly choose $m_{try}$ predictors (i.e., dimensions) to determine the split
+    \end{itemize}
+
+    \item Aggregate all trees (maj. vote for classification, avg. for regression)
+\end{enumerate}
+\textbf{Uncertainty quantification}: For all bootstrap samples, compute error on out-of-bag sample and average. \\
+\textbf{Variable importance}: E.g., permute data in OOB (may permute out of support!). Don't overinterpret variable importance! Usually: Var. importance = 0 \textrightarrow var. not needed for maintaining pred. performance \\
+\textbf{Note}: Individually grown trees usually have small bias but high var., while bagging (RF) can help reduce the variance. RF with $m_{try}=p \equiv \text{bagging}$
+\subsection*{Random forests as kernels}
+Assume $\forall \text{trees} \; \forall \text{leaves} \: \ell, \; \exists! i \in \{i,...,n\} \colon x_i \in \ell$. Then, \\
+$g_{\text{RF}}(x) = \frac{1}{n_{\text{tree}}} \sum_{b=1}^{n_\text{tree}}\sum_{r=1}^{M} \hat{\beta}_r^b \mathds{1}_{R_r^b}(x)  \\
+= \frac{1}{n_{\text{tree}}} \sum_{b=1}^{n_\text{tree}}\sum_{r=1}^{M}\sum_{i=1}^n Y_i \mathds{1}_{R_r^b}(x_i) \mathds{1}_{R_r^b}(x) \; = \; \mathcolor{black}{\sum_{i=1}^n w_iY_i}$ (similar to kernel smoothing), where $\mathcolor{black}{w_i}$: Fraction of tress s.t. $x$ \& $x_i$ are in the same leaf. For general trees, also factor in how many others are in the same leaf! Sometimes called an \textbf{\emph{adaptive kernel}}.

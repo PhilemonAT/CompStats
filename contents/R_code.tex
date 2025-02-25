@@ -1,0 +1,324 @@
+\section{Coding Part}
+\lstset{frame=single, basicstyle=\ttfamily, aboveskip=0pt, escapechar=@, belowskip=0pt}
+\begin{lstlisting}[language=R]
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 1\hspace{2.15cm}}}@
+x <- seq(from=1, to=40, by=1) # generate features
+y <- 1 + 2*x + 5*rnorm(length(x)) # simulate data
+X <- cbind(1, x) # model matrix X, model.matrix(fit)
+XtXinv <- solve(crossprod(X)) # get (X^TX)^-1
+tsd <- sqrt(5^2 * XtXinv[2, 2]) # get true sd of slope
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 2\hspace{2.15cm}}}@
+df[order(df[,"LifeExp"], decreasing=T), ] # Ordering 
+anova(small, big) # ANOVA, partial F-test
+predict(fit, df_new, "confidence", 0.95) # CI
+predict(fit, df_new, "prediction", 0.95) # PI
+
+# Backward/Forward selection using step() --> AIC!
+mortal.bw <- step(mortal.full, dir="backward")
+mortal.fw <- step(mortal.empty, dir="forward", 
+                  scope=list(upper=mortal.full, 
+                             lower=mortal.empty))
+                             
+# Regsubsets from leaps --> Cp or BIC!
+library(leaps)
+m <- regsubsets(Y~., data=mort, method=c("backward"))
+ms <- summary(m); ncoef <- which.min(ms$cp)
+coef(m, ncoef)
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 3\hspace{2.15cm}}}@
+kde <- function(X, K, h, x) {
+    1/(length(X)*h) *rowSums(K(outer(x, X, "-")/h))}
+# If dealing with non-equidistant: sort x values!
+x <- seq(-1, 1, length = 101) # generate features
+n <- length(x)
+
+Snw <- Slp <- Sss <- matrix(0, nrow = n, ncol = n)
+# Calculate the hat matrices; they only depends on x!
+In <- diag(n)
+for(j in 1:n) {
+  Snw[,j] <- ksmooth(x, In[,j], kernel = "normal", 
+                     bandwidth = 0.2, x.points = x)$y
+}
+df.NW <- sum(diag(Snw)) # degrees of freedom NW est. 
+
+# Getting the span parameter for loess such that the
+# degrees of freedom match with NW estimator
+dflp <- function(span, val) {
+  for(j in 1:n)
+    Slp[,j] <- loess(In[,j] ~ x, span = span)$fitted
+  sum(diag(Slp)) - val}
+  
+# What span leads to desired df-value
+span <- uniroot(dflp, c(0.2, 0.5), val = df.NW)$root
+
+# Smoothing matrix using loess and smooth.spline
+for (j in 1:n) {
+  Slp[,j]<-predict(loess(In[,j] ~ x, span), x)
+  Sss[,j]<-predict(smooth.spline(x,In[,j],df.NW),x)$y
+}
+
+# Calculate degrees of freedom for LP and SS 
+df.LP <- sum(diag(Slp)); df.SS <- sum(diag(Sss))
+
+# Get the spar value
+spar <- smooth.spline(x, In[,1], df = df.NW)$spar
+
+# Calculate predictions and standard errors
+estnw <- estlp <- estss <- matrix(0, n, nrep)
+senw <- selp <- sess <- matrix(0, n, nrep)
+
+for (i in 1:nrep) {
+  y <- m(x) + rnorm(length(x))
+  estnw[, i] <- ksmooth(x, y, kernel = "normal", 
+                bandwidth = 0.2, x.points = x)$y
+  # repeat for estlp and estss (see above how to fit)
+  sigma2nw <- sum((y-estnw[,i])^2)/(length(x)-df_nw)
+  # repeat for sigma2lp and sigma2ss
+  senw[, i] <- sqrt(sigma2nw * diag(Snw %*% t(Snw)))
+  # repeat for selp and sess
+}
+
+# Coverage ratios
+coverage <- function(x,est,se) {
+  pos <- x == 0.5 # at position x=0.5 (for pointwise)
+  pw <- sum(abs(est[pos,]-m(x)[pos])<=1.96*se[pos,])
+  simult <- sum(apply(abs(est-m(x))<=1.96*se,2,all))
+  return(c(pw, simult))
+}
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 4\hspace{2.15cm}}}@
+# Helper function for LOOCV 
+loocv <- function(reg.data, reg.fcn) {
+  loo.reg.value <- function(i, reg.data, reg.fcn){
+    return(reg.fcn(reg.data$x[-i], reg.data$y[-i],
+                   reg.data$x[i]))
+  }
+  n <- nrow(reg.data)
+  loo.values<-sapply(1:n,loo.reg.value,reg.data,reg.fcn)
+  mean((reg.data$y - loo.values)^2)
+}
+
+# Define regression function to be used on loocv()
+reg.fcn.nw <- function(reg.x, reg.y, x) {
+  ksmooth(reg.x, reg.y,"normal",h, x.points=x)$y
+}
+
+# Computational shortcut for LOOCV
+y.fit.nw <- reg.fcn.nw(reg$x, reg$y, reg$x) # y^hat
+(cv.nw.hat<-mean(((reg$y-y.fit.nw)/(1-diag(Snw)))^2)) 
+
+# smooth.spline has built-in CV
+est.ss <- smooth.spline(reg$x, reg$y, cv = T, df.NW)
+est.ss$cv.crit
+
+# Create K folds for k-fold CV
+folds <- sample(cut(seq(1, n), breaks = K, 
+                labels = FALSE), replace = F)
+
+# Alternative way to calc. hat matrix, dont specify y
+library(sfsmisc)
+Snw <-hatMat(reg$x,trace=F,pred.sm=reg.fcn.nw,x=reg$x) 
+
+# For pred. values outside of range of x-values used 
+# for estimation in loess:
+reg.fcn.lp <- function(reg.x, reg.y, x) {
+  predict(loess(reg.y ~ reg.x,enp.target=df.nw,
+                surface="direct"), newdata = x)
+}
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 5\hspace{2.15cm}}}@
+require("boot")
+tIQR <- function(x, ind) IQR(x[ind])
+res.boot <- boot(data = sample40, statistic = tIQR, R)
+res.boot$t # stores R rows of bootstrap estimates
+res.boot$t0 # stores theta_hat (original estimator)
+bci <- boot.ci(res.boot, conf, 
+               type = c("basic","norm","perc")) # CI
+
+# Helper function to check if ci covers true parameter
+check_ci <- function(ci, ty, true.par) {
+  # Get confidence interval of type ty from object ci
+  type <- c("basic"= "basic", "norm" = "normal", 
+            "perc" = "percent")[ty]
+  ci. <- ci[[type]]
+  k <- length(ci.) # need last two entries
+  lower <- ci.[k-1]; upper <- ci.[k  ]
+  res <- if (true.par < lower) {c(1, 0)} 
+  else if (true.par > upper) {c(0, 1)} 
+  else {c(0, 0)}
+  names(res) <- c("lower", "upper")
+  # return result:
+  res
+}
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 6\hspace{2.15cm}}}@
+require(MASS)
+fit.gamma<-fitdistr(boogg, "gamma") # MLE uni. distr.
+mle <- c(fit.gamma$estimate[1], fit.gamma$estimate[2])
+
+R <- 1000
+set.seed(987) # 1) Parametric bootstrap by hand
+boot_estimates <- numeric(length=R)
+for (i in 1:R) { 
+  sample_ <- rgamma(length(boogg), shape = mle[1], 
+                    rate = mle[2])
+  boot_estimates[i] <- quantile(sample_, 0.75)
+}
+
+set.seed(2020) # 2) Parametric bootstrap using boot
+boogg.rg <- function(data, mle) {
+  rgamma(length(data), shape = mle[1], rate = mle[2])
+}
+theta.fun <- function(x) quantile(x, probs = 0.75)
+res_boot <- boot(boogg, statistic = theta.fun, 
+                 sim= "parametric", 
+                 ran.gen = boogg.rg, 
+                 mle = fit.gamma$estimate, R = R)
+                 
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 7\hspace{2.15cm}}}@
+require(MASS)
+fit.lda <- lda(Species ~ ., data = Iris) # LDA
+fit.qda <- lda(Species ~ ., data = Iris) # QDA
+
+# If OOB bootstrap error asked, save indi. as matrix!
+index<-matrix(sample.int(n,n*B,replace=T), n, B)
+
+# Initialize the list for LDA and QDA fits
+fit_lda<-vector("list", B);fit_qda<-vector("list", B)
+for(i in 1:B) { # Use both meths on the boots samples
+  ind <- index[, i]
+  fit_lda[[i]] <- lda(Species ~ ., data = Iris[ind, ])
+  fit_qda[[i]] <- qda(Species ~ ., data = Iris[ind, ])
+}
+# Determine the mu_hat bootstrap estiamtes
+mu_hat_1<-mu_hat_2<-mu_hat_3<-matrix(0,ncol=B,nrow=2) 
+for(i in 1:B){ # Add means of preds (two) per Species
+  mu_hat_all <- fit_lda[[i]]$means
+  mu_hat_1[, i] <- mu_hat_all[1,]
+  mu_hat_2[, i] <- mu_hat_all[2,]
+  mu_hat_3[, i] <- mu_hat_all[3,]}
+  
+# Logistic regression N_i ~ Bin(m_i, pi_i)
+# with m_i > 1. N_i is #successes 
+fit<-glm(cbind(N,m-N)~age,family=binomial,data=heart)
+optim(c(0,0),neg.ll,data = heart) # Opt. a function
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 8\hspace{2.15cm}}}@
+# Multinomial regression for multiclass classification
+require(nnet)
+class_multinom <- multinom(Species ~ . , data = Iris) 
+
+# One-vs.-rest log regression for multi classification 
+Iris1<-Iris;levels(Iris1$Species)<-c("s","not","not") 
+Iris1$Species <- relevel(Iris1$Species, ref = "not") 
+fit.1<-glm(Species ~ ., Iris1, family = "binomial")
+
+# Plot ROC and cost curves for classifiers 
+require(ROCR)
+fit<-glm(Survival~.,d.baby, family = "binomial")
+pred<-prediction(fit$fitted.values, d.baby$Survival)
+perf<-performance(pred, "tpr", "fpr") # could "cost"
+plot(perf, main = ...)
+
+# Can also give list with K different CV predictions 
+# to prediction() and then, average over curves
+plot(perf.cv, avg = "threshold", main = ...) 
+
+# Fitting GAMs and wraping formulas with sfsmisc
+require(sfsmisc) # as.formula from sfsmisc, 2 deg poly
+form2<-wrapFormula(f="logupo3 ~ .", data = d.ozone.e, 
+                     wrapString="poly(*, degree = 2)") 
+fit2 <- lm(form2, data = d.ozone.e)
+require(mgcv) # GAMs
+gamForm <- wrapFormula(as.formula("y~."), data = data)
+g1 <- gam(formula = gamForm, data = d.ozone.e)
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.15cm}Exercise 9\hspace{2.15cm}}}@
+# linout = TRUE --> regression, o.w. classification
+require(nnet) 
+fit <- nnet(Fertility ~ ., data = train, size = 15, 
+            skip = TRUE, decay = 0, linout = TRUE, 
+            maxit = 100, trace = FALSE)
+            
+loss <- function(fitfn, formula = pclass ~ ., 
+                 data = etitanic, lossmatrix,
+                 ..., trace=TRUE, type = "response") {
+  modFrame <- model.frame(formula, data = data)
+  class <- as.integer(model.response(modFrame))
+  fit <- fitfn(formula, data = data, ..., trace=trace)
+  pi_hat <- predict(fit, modFrame, type = type)
+  L_pi_hat <- pi_hat %*% lossmatrix
+  pred <- apply(L_pi_hat, MARGIN = 1, FUN = which.min)
+  return(mean(lossmatrix[cbind(class, pred)]))
+}
+table(df$Class,ypreds)#misclass rate (off-diag/diag)
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.13cm}Exercise 10\hspace{2.13cm}}}@
+require(rpart)
+rp.veh <- rpart(Class ~ ., data = vehicle.dat,
+                control = rpart.control(cp, minsplit))
+
+require(rpart.plot)
+prp(rp.veh, extra=1, type=1,
+    box.col=c('pink', 'palegreen3',
+              'lightsteelblue 2',
+              'lightgoldenrod 1')[rp.veh$frame$yval])
+plotcp(rp.veh) # cost-complexity plot
+
+# choose optimal cp according to 1-std-error rule:
+cp <- tree$cptable
+min.ind <- which.min(cp[,"xerror"])
+min.lim <- cp[min.ind, "xerror"] + cp[min.ind, "xstd"]
+cp.opt <-  cp[cp[,"xerror"] < min.lim, "CP"][1]
+tree_pruned <- prune.rpart(tree, cp = cp.opt) # prune
+
+# If classification --> response has to be a factor!
+require(randomForest) 
+rf_fit<-randomForest(factor(Class)~.,data=vehicle.dat) 
+plot(rf_fit) # show OOB error for the diff classes
+rf_fit2 <- randomForest(factor(Class)~., # mtry to max 
+                        mtry=ncol(vehicle.dat)-1, 
+                        data = vehicle.dat) 
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{2.13cm}Exercise 11\hspace{2.13cm}}}@
+require(glmnet)
+f.ridge <- glmnet(X, Y, alpha=0) # alpha = 0 --> Ridge
+f.lasso <- glmnet(X, Y, alpha=1) # alpha = 1 --> Lasso
+f.elasticnet <- glmnet(X,Y,alpha=0.5) # Elastic net
+
+# Lasso-traces
+plot(f.lasso, xvar="lambda", main="Lasso Regression") 
+
+# built-in CV
+f.elasticnet.cv <- cv.glmnet(X,Y,alpha=0.5,nfolds = 10) 
+plot(f.elasticnet.cv) # --> cv MSE in depend. of lambda
+lambda.opt.1se <- f.elasticnet.cv$lambda.1se # 1-SE
+
+# plot number of nonzero coeffs as a fct. of log(lambda)
+plot(log(f.lasso$lambda), 
+     apply(coef(f.lasso2), 2, function(x) sum(x != 0)),
+     type = "l") 
+
+# largest lambda s.t. coeffs >= 15
+first.lam.ind = min(which(f.lasso$df >= 16)) 
+coef(f.lasso)[, first.lam.ind] # coeffs for this lambda
+
+# names of nonzero coeffs
+names(which(coef(f.lasso)[, first.lam.ind] != 0)) 
+as.numeric(which(coef(f.lasso)[,first.lam.ind]!= 0))-1 
+@\colorbox{lightgray}{\rule[0.3em]{0pt}{0.001em}\smash{\hspace{1.97cm} Miscellaneous\hspace{1.97cm}}}@
+# Create train-test split (90%, 10%)
+sample <- sample(c(TRUE, FALSE), nrow(df), 
+                 replace=T, prob=c(0.9, 0.1))
+
+# SVM
+library(e1071); iris$Species <- factor(iris$Species)
+#kernel SVM with median heuristic
+med.heur <- 1/median(dist(iris[samp, 1:4])^2)
+svm.med <- svm(Species ~ ., data = iris, subset = samp,
+    cost = 1, gamma=med.heur)
+Y.pred <- predict(svm.ir, iris[-samp,1:4])
+
+# bagging using only one sample from P
+f_Bag <- lapply(1:M, function(m){
+  data <- dat_train[sample(1:N, N, replace = TRUE), ]
+  f_m <- rpart(y ~ x, data = data, cp = cp)
+  return(f_m)
+})
+
+# preds of f_Bag: mean of all predictions for every obs.
+pred_f_Bag <- rowMeans((sapply(f_Bag, function(f_m){
+  predict(f_m, dat_test)})))
+\end{lstlisting}

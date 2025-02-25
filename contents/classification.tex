@@ -1,0 +1,59 @@
+\section{Classification}
+Let $(X_1, Y_1),...,(X_n, Y_n), (X_{new}, Y_{new}) \overset{iid}{\sim} P$ with $\forall i \in \{1,...,n, {new}\}: X_i \in \mathcal{X}, Y_i \in \{0,...,J-1\} \eqqcolon \mathcal{Y}$. Loss: $\ell: \mathcal{Y}^2 \to \mathbb{R}$ (e.g., 0-1-loss). \textbf{Wanted}: Classifier $C: \mathcal{X} \to \mathcal{Y}$, s.t., $\mathbb{E}[\ell(C(X_{new}), Y_{new})]$ is small. \\
+The minimizer of this expect. with the 0-1-loss is the \textbf{Bayes classifier}: $C_{Bayes}(x) \coloneqq {\text{argmax}}_{j\in \{0,...,J-1\}}\mathbb{P}(Y=j|X=x) \eqqcolon {\text{argmax}}_{j} \pi_j(x)$.
+\subsection*{Discriminant Analysis; Multiclass}
+
+\begin{itemize}
+    \item \textbf{LDA}. Model: We assume $X|Y=j \sim \mathcal{N}(\mu_j, \Sigma)$; and $p_j \coloneqq \mathbb{P}(Y=j)$. \\ Bayes rule: \textrightarrow $\mathbb{P}(Y=j|X=x) \propto f_{X|Y=j}(x) \cdot p_j$. Moment estimators: \\
+    $\hat{\mu}_j = {n_j}^{-1}\sum_{i:Y_i=j} x_i$, where $n_j=\#\{i:Y_i=j\}$; \\
+    $\hat{\Sigma} = (n-J)^{-1}\sum_{j=0}^{J-1} \sum_{i: Y_i=j} (x_i-\hat{\mu}_j)(x_i-\hat{\mu}_j)^\intercal$; \\
+    $\hat{\Sigma}_j = (n_j-1)^{-1} \sum_{i:Y_i=j}(x_i-\hat{\mu}_j)(x_i-\hat{\mu}_j)^\intercal$ (\emph{for QDA}); \\
+    $\hat{p}_j=n_j/n$ \\
+    $\mathcolor{darkgreen}{\hat{C}_{LDA}(x) = \underset{0\leq j \leq J-1}{\text{argmax}} \hat{\delta}_j(x) = \underset{0\leq j \leq J-1}{\text{argmax}} \left(\left(x-\frac{\hat{\mu}_j}{2}\right)^\intercal \hat{\Sigma}^{-1}\hat{\mu}_j + log(\hat{p}_j)\right)}$ \\
+    Note: Linear decision boundary: $B = \left\{x | \hat\delta_0(x) = \hat\delta_1(x)\right\}$ \\ 
+    $= \left\{x | x^T\hat{\Sigma}^{-1}(\hat{\mu}_0 - \hat{\mu}_1) + log \frac{\hat{p}_0}{\hat{p}_1} - \frac{1}{2}\hat{\mu}_0^T\hat{\Sigma}^{-1}\hat{\mu}_0  + \frac{1}{2}\hat{\mu}_1^T\hat{\Sigma}^{-1}\hat{\mu}_1 = 0 \right\}$
+    
+    \item \textbf{QDA}. Model: Only diff. to LDA: different covariance matrices $\Sigma_j$, so $(X|Y=j) \sim \mathcal{N}(\mu_j, \Sigma_j)$. We obtain discr. functions which are quadratic in x: \\
+    $\mathcolor{darkgreen}{\hat{C}_{QDA}(x) = \underset{0\leq j \leq J-1}{\text{argmax}} \left(\frac{-log(det(\hat{\Sigma}_j))}{2} - \frac{(x-\hat{\mu}_j)^\intercal \hat{\Sigma}_j^{-1}(x - \hat{\mu}_j)}{2} + log(\hat{p}_j)\right)}$ \\
+    \textrightarrow QDA needs $J\cdot p(p+1)/2$ parms. for cov matrices, LDA only $p\cdot (p+1)/2$. Both additionally $J \cdot p$ for means and $J-1$ for priors
+\end{itemize}
+\subsection*{Logistic regression (where we model $\pi(x)$); Binary}
+\textbf{Logistic Regression}. Only for binary classification \textbf{J=2}. \\
+Model: $\forall x \in \mathbb{R}^d: \pi(x)=\frac{1}{1+exp(-g(x))} = \text{logistic}(g(x)) \in (0,1)$, or \\
+$log\left( \frac{\pi(x)}{1-\pi(x)} \right) = g(x)$, where $g: \mathbb{R}^p \to \mathbb{R}$ (\emph{'log-odds'}) \\
+\textbf{Linear logistic regr.}: $g(x) = \beta^\intercal x$ and $(Y|X=x) \sim Ber\left(\pi(x)\right)$. Parameters are fitted using maximum likelihood. \\ 
+The \emph{likelihood} is $L(\beta, data) = \prod_{i=1}^n \pi_\beta(x_i)^{Y_i}(1-\pi_\beta(x_i))^{1-Y_i}$, \\
+and \emph{nll}: $-\ell(\beta, data) = -\left( \sum_{i=1}^n Y_i log(\pi_\beta(x_i)) + (1-Y_i)log(1-\pi_\beta(x_i)) \right)$ $= -\sum_{i=1}^n\left( Y_i \beta^\intercal x_i - log(exp(\beta^\intercal x_i)+1) \right)$ \textrightarrow nonlinear problem, but convex in $\beta$, with Hessian: $X^\intercal diag(\hat{Y}(1-\hat{Y}))X \succcurlyeq 0$ (psd). \textrightarrow Can use Newton's GD to find MLE $\hat{\beta}$.\\
+\emph{Rem. 1}: Fct. may not be strictly convex. E.g., consider collinearity or perfect separation. Then, there's no unique optimum; can yield convergence probs\\
+\emph{Rem. 2}: Heuristic: $n \geq max[10\cdot d/\mathbb{P}(Y=1),10\cdot d/\mathbb{P}(Y=0)]$ \\
+\textbf{Multiclass case, J>2}: Logistic regression not directly applicable. But: \\
+\textbf{1)} Build $J$ classifiers 'one-vs-rest'\\
+\textbf{2)} Build $J\cdot (J-1)/2$ classifiers 'one-vs-one' and at test time we take class that wins the most pairwise comparisons \\
+\textbf{3)} Multinomial distribution \\
+\textbf{4)} Neural networks (with softmax as last layer) \\
+\textbf{5)} For ordered classes: proportional odds model, polr()
+
+\subsection*{Evaluating classifiers}
+We have a classifier that models $\pi$ by $\hat{\pi}$ which assigns $x$ for some $\theta \in \mathbb{R}$ into a predicted label via $\hat{Y}(x) \coloneqq \mathds{1}_{[\hat{\pi}(x)>\theta]}$ and $\hat{Y}_i \coloneqq \hat{Y}(x_i)$. \\
+For a \textbf{given} $\theta$, define the confusion matrix:
+
+\noindent
+\parbox{0.5\linewidth}{%
+    \tiny
+    \begin{tabular}{|c|c|c|}
+        \hline
+         & \textbf{$\hat{Y}=0$} & \textbf{$\hat{Y}=1$}  \\ \hline
+        \textbf{$Y=0$} & TN & FP  \\ \hline
+        \textbf{$Y=1$} & FN & TP \\
+        \hline
+    \end{tabular}%
+}%
+\hfill
+\parbox{0.5\linewidth}{%
+    \raggedright
+    $\text{N} = \text{TN} + \text{FP}$, and $\text{P} = \text{FN} + \text{TP}$ \\
+    $\text{Sensitivity}(\theta) = \text{TPR}(\theta) \coloneqq \text{TP}/\text{P}$ \\
+    $\text{Specificity}(\theta) \coloneqq \text{TN}/\text{N}$
+    $1 - \text{Specificity}(\theta) = \text{FPR} \coloneqq \text{FP}/\text{N}$
+}
+The \textbf{ROC-curve} plots the TPR (y-axis) against the FPR (x-axis) for all values of $\theta$ simultaneously! The curve is monotonically increasing: if $\hat{P}$ increases, then ${T\hat{P}}$ increases or stays the same. To compare two classifiers, can look at \textbf{AUC} ($=0.5$ for random guessing, and $=1$ for perfect class.)

@@ -1,0 +1,69 @@
+\section{Bootstrap}
+\textbf{Setting}: $Z_1, ... Z_n \overset{i.i.d}{\sim} P$; Target of inference: $\theta$; Estimator of $\theta$: $\hat{\theta} = \hat{\theta}_n = \hat{\theta}_n(Z_1,...,Z_n)$
+
+\subsection*{Basic bootstrap algorithm}
+\textbf{1)} $Z_1^*,...,Z_n^* \overset{\mathrm{iid}}{\sim} \hat{P}_n$ --> Do $n$ uniform random drawings with replacement from the data set ${Z_1,...,Z_n}$ \\
+\textbf{2)} Compute bootstrapped estimator $\hat{\theta}_n^* = g(Z_1^*,...Z_n^*)$ \\
+\textbf{3)} Repeat steps 1 and 2 \textbf{B} times to obtain $\hat{\theta}_n^*{^1}, ..., \hat{\theta}_n^*{^B}$ \\
+\textbf{4)} Use these bootstrapped estimators as approximations for the bootstrap expectation, variance and quantiles:
+        $\mathbb{E}^*[\hat{\theta}_n^*] \approx \frac{1}{B} \sum_{i=1}^{B} \hat{\theta}_n^*{^i}$ \\ 
+        ${Var}^*(\hat{\theta}_n^*) \approx \frac{1}{B-1} \sum_{i=1}^{B}(\hat{\theta}_n^*{^i} - \frac{1}{B}\sum_{j=1}^{B}\hat{\theta}_n^*{^j})^2$ \\
+        $\alpha$-quantile of distribution of $\hat{\theta}_n^* \approx$ empirical $\alpha$-quantile of $\hat{\theta}_n^*{^1}, ..., \hat{\theta}_n^*{^B}$
+
+\subsection*{Consistency}
+We call the bootstrap \textbf{consistent} for $\hat{\theta}$ if the following holds (for $n\to\infty$):  $\exists{a_n} \forall{x}:$  
+$\mathbb{P}_p(a_n(\hat{\theta}_n - \theta) \le x) - \mathbb{P}_{p^{*}}(a_n(\hat{\theta}_n^{*} - \hat{\theta}) \le x) \overset{\mathbb{P}}{\to} 0$, \\
+where $P^*$ is the cond. distr. of ${Z_1^*,...Z_n^*}$ given ${Z_1,...,Z_n}$ and $a_n$ incr. seq.\\
+\emph{Note}: Consistency of the bootst. (usually) implies consist. var. and bias est. Also, consistency typically holds if the limiting distr. of $\hat{\theta}_n$ is normal, and if $Z_1, \ldots, Z_n$ are i.i.d. \textcolor{gray}{(Note: no bootstrap consist. for finite sample size)}
+
+\subsection*{Bootstrap confidence interval}
+Due to bootstrap consistency, we have: \\
+$[\hat{\theta} - q_{1-\frac{\alpha}{2}}, \hat{\theta} - q_{\frac{\alpha}{2}}]$ ($q$ is quantile of $\hat{\theta}-\theta$)\\
+$\approx [\hat{\theta} - \hat{q}_{1-\frac{\alpha}{2}}, \hat{\theta} - \hat{q}_{\frac{\alpha}{2}}]$ ($\hat{q}$ is quantile of $\hat{\theta}^*-\hat{\theta}$) \\
+$= [2\hat{\theta} - q_{1-\frac{\alpha}{2}}^*, 2\hat{\theta} - q_{\frac{\alpha}{2}}^*]$ ($q^*$ is quantile of $\hat{\theta}^*$)\\
+$= I^*(1-\alpha)$ (\textbf{Basic Bootstrap CI}) \textrightarrow often better\\
+$\neq [q_{\frac{\alpha}{2}}^*, q_{1-\frac{\alpha}{2}}^*]$ (\textbf{Percentile Bootstrap CI}; does not correct for bias in $\hat{\theta}_n$) \\
+Another CI is based on the \textbf{normal approximation} with a bias correction: \\
+$2\hat{\theta} - \Bar{\hat{\theta}^*} \pm q_z(1-\alpha/2)\cdot \hat{\text{sd}}(\hat{\theta})$; $Z \sim \mathcal{N}(0, 1)$; $\hat{\text{sd}}(\hat{\theta}) = \sqrt{\frac{1}{R-1} \sum_{i=1}^R(\hat{\theta}^{*i}-\Bar{\hat{\theta}^*})^2}$
+
+
+\subsection*{Generalization error}
+Goal: estimate $\mathbb{E}[\rho(Y_{new}, \hat{m}(X_{new}))]$ for loss fct. $\rho$, and $\hat{m}$ possibly a regr. estimator. \\
+\textbf{Bootstrap gen. error} is: $\mathbb{E}^*[\rho(Y_{new}^*, \hat{m}^*(X_{new}^*))]$, where $\mathbb{E^*}$ is the bootstrap expectation w.r.t all the bootstrap variables ${train}^*=(X_1^*,...,X_n^*)$ and $test^*=(X_{new}^*,Y_{new}^*)$\\
+\emph{Shortcut}: It holds that $\mathbb{E}^*[\rho(Y_{new}^*, \hat{m}^*(X_{new}^*))] = \frac{1}{n}\sum_{i=1}^n\mathbb{E}^*[\rho(Y_i, \hat{m}^*(X_i))]$ (avg. of boots. errs. over original data ($X_i, Y_i$)): no need to generate ($X^*_{new}, Y^*_{new}$))\\
+\textbf{Practical algorithm}: 1) $(X^*_1, Y^*_1),...,(X^*_n, Y^*_n) \sim \hat{P}_n$; 2) compute $\hat{m}^*(.)$ based on $(X^*_1, Y^*_1),...,(X^*_n, Y^*_n)$; 3) evaluate ${err}^*=\frac{1}{n}\sum_{i=1}^n\rho(Y_i, \hat{m}^*(X_i))$; 4) Repeat steps 1-3 \textbf{B} times to obtain ${err}^{*1}, ..., {err}^{*B}$ and approx. bootst. error by $\frac{1}{B}\sum_{i=1}^B{err}^{*i}$ (=est. of true gen. err) \emph{\textcolor{gray}{\textrightarrow may be overoptimistic}}\\
+\textbf{Out-of-bootstrap sample (OOB) gen. error}:\\
+$ \frac{1}{B}\sum_{b=1}^B\frac{1}{|\mathcal{L}^{*(b)}_{out}|}\sum_{i\in\mathcal{L}^{*(b)}_{out}}\rho(Y_i, \hat{m}^{*(b)}(X_i))$, where for $\mathcal{L}^* = {Z_1^*,...Z_n^*}$, $\mathcal{L}_{out}^* = \cup_{i=1}^n\{(X_i, Y_i): (X_i, Y_i) \notin \mathcal{L}^*\}$. $\mathcal{L}_{out}^*$ has exp. size of $n*0.368$
+
+\subsection*{Double Bootstrap}
+Problem: $\mathbb{P}(\theta \in I^*(1-\alpha)) = 1-\alpha+\triangle_n$. \textbf{Algorithm}:\\
+\textbf{1) Repeat $M$ times}:
+\begin{itemize}
+    \item Draw $Z_1^*,...,Z_n^* \sim P_n$ and compute $\hat{\theta}^*$
+    \item Repeat $B$ times:
+    \begin{itemize}
+        \item Generate $Z_1^{**},...,Z_n^{**} \sim Z_1^*,...,Z_n^*$ (with repl.) and compute $\hat{\theta}^{**}$
+    \end{itemize}
+    \item $I^{**}(1-\alpha) \coloneqq [2\hat{\theta}^* - q^{**}(1-\frac{\alpha}{2}); 2\hat{\theta}^* - q^{**}(\frac{\alpha}{2})]$
+    
+    \item ${cover}^*(1-\alpha) \coloneqq \mathbbm{1}_{[\hat{\theta} \in I^{**}(1-\alpha)]}$
+\end{itemize}
+\textbf{2) Take average over all $M$ covers} as approx. for $\mathbb{P}^*[\hat{\theta} \in I^{**}(1-\alpha)]$: \\ 
+$p^*(\alpha) \coloneqq \frac{1}{M}\sum_{i=1}^M {cover}^{*i}(1-\alpha)$ \\
+\textbf{3) Vary $\alpha$} (in all of step 1 and 2) to find $\alpha^{\prime*}$ such that $p^*(\alpha^{\prime*}) = 1-\alpha$ (desired nominal level) and use $\widehat{1- \alpha^{\prime}} = 1 - \alpha^{\prime*}$ \\
+\emph{Note}: Requires $B*M$ bootstrap samples
+
+\subsection*{Parametric Bootstrap} 
+Assume data to be realizations from $Z_1,...,Z_n$ i.i.d. $\sim P_{\theta}$. Then, estimate $\theta$ by $\hat{\theta}$ and proceed by using $Z_1^{*},...,Z_n^{*} \sim P_{\hat{\theta}}$
+
+\subsection*{Parametric Bootstrap - Linear model}
+Let $Y_i = \beta^T x_i + \epsilon_i$, where $x_i \in \mathbb{R}^p$ are fixed and $\epsilon_1,..., \epsilon_n$ i.i.d$\sim \mathcal{N}(0, \sigma^2)$. \textbf{1)} Estimate $\theta = (\beta, \sigma^2)$ by $\hat{\theta} = (\hat{\beta}, \hat{\sigma}^2)$. \textbf{2)} Construct $(x_1, Y_1^*),...,(x_n, Y_n^*)$, where $Y_i^* = \hat{\beta}^T x_i + \epsilon_i^*$ and $\epsilon_i^* \sim \mathcal{N}(0, \hat{\sigma}^2)$
+
+\subsection*{Parametric Bootstrap - AR(p) Model}
+Let $X_t = \sum_{j = 1}^{p}\phi_j X_{t-j} + \epsilon_t$, where $X_t \in \mathbb{R}$ and $\epsilon_1,..., \epsilon_n$ i.i.d$\sim \mathcal{N}(0, \sigma^2)$. \textbf{1)} Estimate $\theta = (\phi, \sigma^2)$ by $\hat{\theta} = (\hat{\phi}, \hat{\sigma}^2)$. \textbf{2)} Construct $X_{m+1}^*,...,X_{m+n}^*$ recursively from $X_t^* = \sum_{j = 1}^{p}\hat{\phi}_j X_{t-j}^* + \epsilon_t^*$, where $\epsilon_1^*,..., \epsilon_{n+m}^*$ i.i.d$\sim \mathcal{N}(0, \hat{\sigma}^2)$ and $m \approx 1000$ is the "burn-in time". \emph{Note:} We throw away $X_1^*,...,X_m^*$ to obtain bootstrap sample that is approximately a stationary process. 
+
+\subsection*{Model-based bootstrap for regression}
+Model original data by $Y_i = m(x_i) + \epsilon_i$, where $\epsilon_1,..., \epsilon_n$ i.i.d. $\sim P_{\epsilon}$ with $\mathbb{E}_{P_{\epsilon}}[\epsilon_1] = 0$ and $m(.)$ being parametric or non-parametric. \textbf{1)} Estimate $m$ by $\hat{m}$ and calculate centered residuals $\Tilde{r}_i = r_i - \frac{1}{n}\sum_{i}^{n} r_i$. \textbf{2)} Construct $(x_1, Y_1^*),...,(x_n, Y_n^*)$, where $Y_i^* = \hat{m}(x_i) + \epsilon_i^*$ and $\epsilon_i^* \sim \hat{P}_{\Tilde{r}}$
+
+\subsection*{Independence Testing using Bootstrap}
+Let $B_n = \{\rho | \rho: \{1,...n\} \rightarrow \{1,...n\}\}$, $(X_1, Y_1),...,(X_n,Y_n) \in \mathcal{X}$ i.i.d. $\sim P^{(X,Y)}$, $H_0 = \{P^{(X,Y)}: X \perp Y\}$ and $T_n: \mathcal{X}^n \rightarrow \mathbb{R}$. Then, $\forall \psi \in B_{n}^2$, define resample $\psi((x_1, y_1),...,(x_n,y_n)) = \big((x_{\psi^1(1)},y_{\psi^2(1)}),...,(x_{\psi^1(n)},y_{\psi^2(n)}\big)$ and sample $\psi_1,...,\psi_B$ i.i.d. $Uniform(B_{n}^2)$. The p-value is then given by $\frac{1 + |\{i \in \{1,...B\} : T_n(\psi_i((x_1, y_1),...,(x_n,y_n))) \geq T_n((x_1, y_1),...,(x_n,y_n))\}|}{1 + B}$.

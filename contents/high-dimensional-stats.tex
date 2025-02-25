@@ -1,0 +1,30 @@
+\section{High-dimensional statistics}
+$X \in \mathbb{R}^{n \times p}, Y \in \mathbb{R}^n$. Consider \textbf{OLS}: $\hat{\beta} \in \text{argmin}_\beta ||Y-X\beta||_2^2$ \\ 
+If $p \leq n: \hat{\beta} = (X^\intercal X)^{-1}X^\intercal Y$. If $p > n: \hat{\beta}$ not unique. Even if  $p \approx n$, $\hat{\beta}_{\text{OLS}}$ potentially badly behaved. 
+\subsection*{Ridge} 
+$\hat{\beta}^\lambda = \text{argmin}_{\beta \in \mathbb{R}^p} ||Y-X\beta||_2^2 + \lambda||\beta||_2^2$ (don't shrink intercept). Analytical solution: $\hat{\beta}^\lambda = (X^\intercal X + \lambda \mathds{I})^{-1}X^\intercal Y$. Consider the two cases:\\
+\begin{itemize}
+    \item $\mathbf{X}$ \textbf{only orthogonal predictors}: $\implies X^\intercal X$ diag. \\ Define $(X^\intercal X)_{kk} \eqqcolon d^2_k, D^2 \coloneqq X^\intercal X$. Then, $(D^2+\lambda\mathbb{I})^{-1}_{kk}=\frac{1}{d^2_k+\lambda}$ and \\ $\hat{\beta}^\lambda_k=\frac{1}{d^2_k + \lambda}(X^\intercal Y)_k$ vs. $\hat{\beta}^{\text{OLS}}_k = \frac{1}{d^2_k} (X^\intercal Y)_k$, so $\hat{\beta}_k^\lambda = \frac{d^2_k}{d^2_k + \lambda} \hat{\beta}_k^{\text{OLS}}$ \\ Thus, Ridge rescales OLS by this factor. If $d^2_k$ is small (which is the empirical variance of predictor $k$ if we center the columns of $X$), the shrinkage is larger, and vice versa. Ridge keeps the pred.  with large variance larger. 
+    \item $\mathbf{X}$ \textbf{non-orthogonal}: $\leadsto$ SVD $ X = UDV^\intercal \leadsto$ rotate $\Tilde{X} = XV$ (basis transform), $\Tilde{X}$ orthogonal. Then, $\hat{\Tilde{\beta}}^\lambda = (V^\intercal X^\intercal XV + \lambda \mathds{I})^{-1}V^\intercal X^\intercal Y$ $\implies$ shrink entries of $\hat{\Tilde{\beta}}$ as before, i.e. shrink the coeff. in the rotated system.
+\end{itemize}
+\textbf{Note}: $XV_j$ is j-th principal component of X: ridge works well if the signal lives in the space of the first principal components. \\
+\textbf{Choice of $\lambda$}: If $\lambda$ is chosen appropriately, ridge outperforms OLS w.r.t MSE. Note that $\mathbb{E}[\hat{\beta}^\lambda] \neq \beta$, $\text{Var}(\hat{\beta}^\lambda) \leq \text{Var}(\hat{\beta}^{\text{OLS}})$, so ridge is biased for $\lambda > 0$, but variance is lower. Use CV to choose $\lambda$.
+
+\subsection*{Lasso} 
+$\hat{\beta}^\lambda = \text{argmin}_{\beta \in \mathbb{R}^p} ||Y-X\beta||_2^2 + \lambda||\beta||_1$ Assume $X^\intercal X = \mathbb{I}$. Then, \\ $\hat{\beta}_k^\lambda = \text{sign}(\hat{\beta}^\text{OLS}_k) \cdot \text{max} \{0, |\hat{\beta}_k^\text{OLS}| -\lambda/2\}$. Thus, small values of $\hat{\beta}^\text{OLS}$ are pushed to zero. \\
+\textbf{Note}: As ridge, lasso is biased. It works well if solution can be approx. by a sparse one (solution needs only $s < min(n,p)$ variables). Lasso can be useful for model selection.\\
+\textbf{Extensions of Lasso}:
+\begin{itemize}
+    \item \textbf{Elastic net}: $\hat{\beta}^{\lambda,\alpha}=\text{argmin}_{\beta}||Y-X\beta||^2_2 + \lambda \left((1-\alpha) ||\beta||_1 + \alpha ||\beta||_2^2\right)$
+    \item \textbf{Group Lasso}: Denote $\beta^\intercal = (\beta_1,...,\beta_L)^\intercal$, $\beta_\ell$ of length $p_\ell$ and $\sum_{\ell=1}^L p_\ell = p$. Then, $\hat{\beta}^g(\lambda) = \text{argmin}_{\beta \in \mathbb{R}^p} ||Y - \sum_{\ell=1}^L X_\ell \beta_\ell||_2^2 + \lambda \sum_{\ell=1}^L \sqrt{p_\ell}\cdot ||\beta_\ell||_2$. This will give $\hat{\beta}_\ell \equiv 0$ or $\hat{\beta}_{\ell,j} \neq 0 \forall j=1,...,p_\ell$, so group lasso is sparse on the group-level but non-sparse within groups.
+\end{itemize}
+\subsection*{Kernel ridge regression}
+
+$\text{min}_\beta ||Y-X\beta||^2_2 + \lambda ||\beta||^2_2 \iff \text{min}_{f \in \mathcal{H}} \sum_{i=1}^n (Y_i - f(x_i))^2 + \lambda ||f||_\mathcal{H}$, when $\mathcal{H}$ is an RKHS with \textbf{linear kernel} $k(x, \cdot) = \langle x, \cdot \rangle$, i.e., $\mathcal{H} = \{ f: \mathbb{R}^p \to \mathbb{R} \colon f(x) = x^\intercal \beta  \; \text{for some} \; \beta \in \mathbb{R}^p \}$. Now, we solve this for general kernels/RKHS
+
+\begin{itemize}
+    \item ... via representer theorem: \\
+    The thm. says we can instead solve $\text{min}_{\alpha \in \mathbb{R}^n} ||Y - K\alpha||^2_2 + \lambda\alpha^\intercal K\alpha$, where $K \in \mathbb{R}^{n\times n}$. The solution satisfies $\hat{Y} = K\hat{\alpha} = K(K + \lambda \mathds{I})^{-1}Y$
+    \item ... via 'kernelization' of linear ridge regression: \\
+    $\hat{Y} = X\hat{\beta}^\lambda = X(X^\intercal X + \lambda \mathds{I})^{-1}X^\intercal Y$ which can be reformulated to $ X X^\intercal(X X^\intercal + \lambda \mathds{I})^{-1}Y$ and then kernelized as $K(K + \lambda \mathds{I})^{-1}Y$
+\end{itemize}
