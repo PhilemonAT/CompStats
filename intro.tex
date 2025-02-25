@@ -1,0 +1,62 @@
+\documentclass[10pt,landscape,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{tikz}
+\usetikzlibrary{shapes, positioning, arrows, fit, calc, graphs, graphs.standard}
+\usepackage[nosf]{kpfonts}
+\usepackage[t1]{sourcesanspro}
+\usepackage{multicol}
+\usepackage{wrapfig}
+\usepackage[top=0mm,bottom=1mm,left=0mm,right=1mm]{geometry}
+\usepackage[framemethod=tikz]{mdframed}
+\usepackage{microtype}
+\usepackage{pdfpages}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage{bbm}
+\usepackage{dsfont}
+\usepackage{listings}
+\usepackage{courier}
+\usepackage{listings}
+
+\let\bar\overline
+
+\definecolor{darkred}{rgb}{0.5, 0, 0}
+\definecolor{darkgreen}{rgb}{0, 0.5, 0}
+
+
+
+% Set global script size
+\makeatletter
+\newcommand\setfontsize[3]{\fontsize{#1}{#2}\selectfont}
+\makeatother
+
+% Adjust math sizes
+\DeclareMathSizes{5}{5}{5}{5} % For \scriptsize use \DeclareMathSizes{8}{8}{6}{5}
+
+% Customize itemize environment
+\setlist[itemize]{noitemsep, nolistsep, left=0pt}
+
+% Customize enumerate environment
+\setlist[enumerate]{noitemsep, nolistsep, left=0pt, topsep=0pt, itemsep=0pt, parsep=0pt}
+
+\begin{document}
+\include{contents/def}
+
+\tiny % Reduce font size
+\begin{multicols*}{5}
+\input{contents/linear_regression}
+\input{contents/nonparametric_density_est}
+\input{contents/nonparametric_regression}
+\input{contents/cross_validation}
+\input{contents/bootstrap}
+\input{contents/classification}
+\input{contents/flexible_reg_and_class}
+\input{contents/kernels-RKHS}
+\input{contents/high-dimensional-stats}
+\input{contents/bagging_boosting}
+\input{contents/R_code}
+\end{multicols*}
+\end{document}
