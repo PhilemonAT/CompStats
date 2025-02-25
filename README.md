@@ -12,3 +12,8 @@ Cheat sheet for the Computational Statistics course at ETH Zurich (2024).
 8. Kernels & Reproducing Kernel Hilbert Space
 9. High-Dimensional Statistics
 10. Bagging & Boosting
+
+# Contributors
+Armin Begic,
+Jan Schlegel,
+Philemon Thalmann
